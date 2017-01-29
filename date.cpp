@@ -1,3 +1,4 @@
+#include "StdAfx.h"
 #include "date.h"
 #include <sstream>
 #include <iomanip>
