@@ -20,13 +20,13 @@ public:
    */
   DateTime (const DateTime &value);
 
-  /** Construct DateTime value from SQL-formatted UTC date and time
+  /** Construct DateTime value from SQL-formatted date and time
    * /param value       SQL-formatted date and time: "2017-01-17 17:19:21.012"
    */
   DateTime (const std::string &value);
 
   /** Construct DateTime instance from a time_t value
-   * /param time        Seconds from UNIX-epoch start in UTC
+   * /param time        Seconds from UNIX-epoch start
    */
   DateTime (const time_t &time);
 
@@ -36,24 +36,24 @@ public:
   DateTime (const tm *time);
 
   /** Check validity of the date-time value of this instance
-   * /result      False if the instance does not contain valid date and time
+   * /returns      False if the instance does not contain valid date and time
    */
   bool isValid(void) const;
 
   /** Return raw date and time value of this instance
-   * /result      Milliseconds from Jan, 1 of the 1'st year
+   * /returns      Milliseconds from Jan, 1 of the 1'st year
    */
   long long getRaw(void) const;
 
   /** Convert local datetime value to UTC
    *  DateTime doesn't keep timezone for current value,
-   *   caller should track it by itself
+   *   caller code should track it by itself
    */
   void toUTC(void);
 
   /** Convert UTC datetime to local
    *  DateTime doesn't keep timezone for current value,
-   *   caller should track it by itself
+   *   caller code should track it by itself
    */
   void fromUTC(void);
 
@@ -66,14 +66,14 @@ public:
    */
   void setNow(void);
 
-	/** Check does this date-time value contain time portion
-	 * /returns				True if this value has time portion
-	 */
-	bool hasTime(void) const;
+  /** Check does this date-time value contain time portion
+   * /returns				True if this value has time portion
+   */
+  bool hasTime(void) const;
 
 
   /** Set date and time
-   * /param value      SQL-formatted UTC date and time: "2017-01-17 17:19:21"
+   * /param value      SQL-formatted date and time: "2017-01-17 17:19:21"
    */
   void set (const std::string &value);
 
@@ -89,12 +89,12 @@ public:
 
 
   /* Get formatted date
-   * /result          Date in SQL-format (yyyy-MM-dd) or empty string for invalid dates
+   * /returns          Date in SQL-format (yyyy-MM-dd) or empty string for invalid dates
    */
   std::string formatDate(void) const;
 
   /** Get formatted date and time
-   * /result          Date and time in SQL format (yyyy-MM-dd hh:mm:ss) or empty string for invalid dates
+   * /returns          Date and time in SQL format (yyyy-MM-dd hh:mm:ss) or empty string for invalid dates
    */
   std::string formatDateTime(void) const;
 
@@ -130,39 +130,39 @@ public:
   DateTime& incMonth(int months);
 
   /** Increase date and time by given amount of years
-   * /param years      Amount of years by which current daate should be incremented/decremented
+   * /param years      Amount of years by which current date should be incremented/decremented
    *   May be negative (for subtraction).
    */
   DateTime& incYear(int years);
 
   /** Get weekday of the date
-   * /result      Weekday of a valid date (0 for Mon, 6 for Sun) or -1
+   * /returns      Weekday of a valid date (0 for Mon, 6 for Sun) or -1
    */
   int getWeekDay(void) const;
 
   /** Get day of the year
-   * /result      Day of the year of a valid date or -1 for the invalid
+   * /returns      Day of the year of a valid date or -1 for the invalid
    */
   int getDayOfYear(void) const;
 
   /** Get amount of days between two DateTime values
    * /param date1       First date
    * /param date2       Second date
-   *  Returns amount of whole days between two valid dates or -1 otherwise
+   * /returns           Amount of whole days between two valid dates or -1 for invalid ones
    */
   static int daysBetween(const DateTime &date1, const DateTime &date2);
 
   /** Get amount of months between two DateTime values
    * /param date1       First date
    * /param date2       Second date
-   *  Returns amount of whole months between two valid dates or -1 otherwise
+   * /returns           Amount of whole months between two valid dates or -1 for invalid ones
    */
   static int monthsBetween(const DateTime &date1, const DateTime &date2);
 
   /** Get amount of years between two DateTime values
    * /param date1       First date
    * /param date2       Second date
-   *  Returns amount of whole years between two valid dates or -1 otherwise
+   * /returns           Amount of whole years between two valid dates or -1 for invalid ones
    */
   static int yearsBetween(const DateTime &date1, const DateTime &date2);
 
