@@ -17,6 +17,7 @@ const int SECS_IN_MINUTE = 60;
 const int SECS_IN_HOUR = SECS_IN_MINUTE * 60;
 const int SECS_IN_DAY = SECS_IN_HOUR * 24;
 const long long MILLISECS_IN_DAY = SECS_IN_DAY * TIME_MULTIPLIER;
+const long long IDENTITY_THRESHOLD = SECS_IN_MINUTE * TIME_MULTIPLIER;
 
 // Displacement of time_t ticks related to DateTime::m_time
 const long long TIME_T_ZERO = 62167132800000;
@@ -90,7 +91,7 @@ public:
   STime(long long time);
   STime(const tm *time);
   STime(const string &value);
-  
+
   // Get amount of milliseconds from J1n, 1 of the 1'th year
   long long get(void);
 
@@ -112,6 +113,9 @@ public:
   // Get amount of months since a previous date
   // (this date-time MUST be before or equal to the "from" one)
   int monthsAfter(const STime &from);
+
+  // Get STime in representation of struct tm
+  void asTime(tm *time);
 };
 
 STime::STime():
@@ -167,7 +171,7 @@ STime::STime(const string &value) {
     // The string includes time portion
     if (!(str >> hour)
       || !(str >> dummy >> minute)
-      || !(str >> dummy >> second)) 
+      || !(str >> dummy >> second))
         valid = false;
 
     str >> dummy >> millisecond;
@@ -186,7 +190,7 @@ STime::STime (long long time): valid(true) {
   second = time % SECS_IN_DAY;
 
   hour = second / SECS_IN_HOUR;
-  second %= SECS_IN_HOUR; 
+  second %= SECS_IN_HOUR;
 
   minute = second / SECS_IN_MINUTE;
   second %= SECS_IN_MINUTE;
@@ -196,7 +200,7 @@ STime::STime (long long time): valid(true) {
   time /= SECS_IN_DAY;
 
   // Maximum possible years count for this amount of days:
-  year = time / 365;
+  year = static_cast<int>(time / 365);
   year -= getLeapDays(year) / 365;
 
   // The year changed, leap days count may be changed also:
@@ -204,7 +208,7 @@ STime::STime (long long time): valid(true) {
 
   // Day of the year for these year and leap days count:
   long long days = time - (long long)year * 365 - leap;
-  
+
   // Adjusting the year to achieve days being in [0; 365]
   // Down:
   while (days < 0) {
@@ -222,9 +226,9 @@ STime::STime (long long time): valid(true) {
 
   // Split day-of-the year onto month and day
   if (isLeap(year))
-    setYearsDay(MONTH_STARTS_LEAP, MONTH_LENGTHS_LEAP, days);
+    setYearsDay(MONTH_STARTS_LEAP, MONTH_LENGTHS_LEAP, static_cast<int>(days));
   else
-    setYearsDay(MONTH_STARTS, MONTH_LENGTHS, days);
+    setYearsDay(MONTH_STARTS, MONTH_LENGTHS, static_cast<int>(days));
 }
 
 void STime::setYearsDay(const int *monthTable, const int *lengths, int yearDay) {
@@ -326,6 +330,15 @@ int STime::monthsAfter(const STime &from) {
   return result;
 }
 
+void STime::asTime(tm *time) {
+  time->tm_year = year - TM_START_YEAR;
+  time->tm_mon = month;
+  time->tm_mday = day;
+  time->tm_hour = hour;
+  time->tm_min = minute;
+  time->tm_sec = second;
+}
+
 //******************************
 DateTime::DateTime () {
   // Invalid date-time by default
@@ -347,6 +360,20 @@ DateTime::DateTime (const time_t &time) {
 DateTime::DateTime (const tm *time) {
   set(time);
 }
+
+#ifdef WIN32
+DateTime::DateTime (const FILETIME &time) {
+  set(time);
+}
+
+void DateTime::set (const FILETIME &time) {
+  //64-bit value representing the number of 100-nanosecond intervals since January 1, 1601
+  m_time = (long long) time.dwLowDateTime | ((long long) time.dwHighDateTime << 32);
+  m_time /= 10000;
+  m_time += 50522659200000; // Milliseconds till January 1, 1601
+}
+#endif
+
 
 void DateTime::setNow(void) {
   set(time(nullptr));
@@ -387,6 +414,15 @@ time_t DateTime::asUnixTime(void) const {
   time_t result = (m_time - TIME_T_ZERO) / TIME_MULTIPLIER;
   if (result < 0) return -1;
   return result;
+}
+
+bool DateTime::asTime(tm *time) {
+  if (m_time == LLONG_MIN || !time) return false;
+
+  STime t(m_time);
+  t.asTime(time);
+
+  return true;
 }
 
 void DateTime::set (const std::string &value) {
@@ -466,7 +502,7 @@ int DateTime::daysBetween(const DateTime &date1, const DateTime &date2) {
   if (date1.m_time == LLONG_MIN || date2.m_time == LLONG_MIN) return -1;
   long long diff = date1.m_time - date2.m_time;
   if (diff < 0) diff = -diff;
-  return diff / MILLISECS_IN_DAY;
+  return static_cast<int>(diff/MILLISECS_IN_DAY);
 }
 
 int DateTime::monthsBetween(const DateTime &date1, const DateTime &date2) {
@@ -498,4 +534,14 @@ const DateTime& DateTime::operator = (const DateTime &date) {
 bool DateTime::hasTime(void) const {
 	return m_time != LLONG_MIN
 		&& (m_time % MILLISECS_IN_DAY) != 0;
+}
+
+bool DateTime::identic(const DateTime &other) const {
+  if (m_time == LLONG_MIN || other.m_time == LLONG_MIN) return false;
+  if (m_time == other.m_time) return true;
+
+  if (m_time > other.m_time)
+    return (m_time - other.m_time) <= IDENTITY_THRESHOLD;
+
+  return (other.m_time - m_time) <= IDENTITY_THRESHOLD;
 }
