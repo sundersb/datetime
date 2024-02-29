@@ -140,9 +140,11 @@ STime::STime(const tm *time)
     second = time->tm_sec;
     millisecond = 0;
 
+    const int* monthLengthsThisYear = (isLeap(year) ? MONTH_LENGTHS_LEAP : MONTH_LENGTHS);
+
     valid = year >= TM_START_YEAR
       && day > 0
-      && day <= MONTH_LENGTHS[month]
+      && day <= monthLengthsThisYear[month]
       && hour >= 0
       && minute >= 0
       && second >= 0;
